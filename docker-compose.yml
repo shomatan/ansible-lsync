@@ -1,0 +1,43 @@
+version: '2'
+
+services:
+  postfix:
+    container_name: mail-postfix
+    image: shomatan/postfix:3.1.3-alpine
+    environment:
+      POSTFIX_HOSTNAME: mail.YOUR_DOMAIN
+      POSTFIX_DOMAIN: YOUR_DOMAIN
+      POSTFIX_VDOMAINS: YOUR_DOMAIN
+    ports:
+      - "25:25"
+    volumes:
+      - ./vmailbox:/etc/postfix/vmailbox
+      - ../volumes/vhosts:/var/mail/vhosts:rw
+      - ../volumes/sasl:/etc/postfix/sasl:rw
+      - ../volumes/letsencrypt/live/mail.YOUR_DOMAIN/fullchain.pem:/etc/postfix/ssl.cert:ro
+      - ../volumes/letsencrypt/live/mail.YOUR_DOMAIN/privkey.pem:/etc/postfix/ssl.key:ro
+    restart: always
+
+  dovecot:
+    container_name: mail-dovecot
+    image: shomatan/dovecot:2.2.27-alpine
+    ports:
+      - "110:110"
+      - "143:143"
+    volumes:
+      - ./passwd:/etc/dovecot/passwd
+      - ../volumes/vhosts:/var/mail/vhosts:rw
+      - ../volumes/letsencrypt/live/mail.YOUR_DOMAIN/fullchain.pem:/etc/ssl/dovecot/server.pem:ro
+      - ../volumes/letsencrypt/live/mail.YOUR_DOMAIN/privkey.pem:/etc/ssl/dovecot/server.key:ro
+    restart: always
+
+  letsencrypt:
+    container_name: mail-letsencrypt
+    image: shomatan/letsencrypt:0.14.0-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../volumes/letsencrypt:/etc/letsencrypt
+      - ../volumes/letsencrypt:/var/log/letsencrypt
+    command: --domain YOUR_DOMAIN --email YOUR_EMAIL
